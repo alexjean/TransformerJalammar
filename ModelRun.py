@@ -84,7 +84,8 @@ def get_std_opt(model):
 class LabelSmoothing(nn.Module):
     def __init__(self, size, padding_idx, smoothing=0.0):
         super(LabelSmoothing, self).__init__()
-        self.criterion = nn.KLDivLoss(size_average=False)
+        #self.criterion = nn.KLDivLoss(size_average=False)
+        self.criterion = nn.KLDivLoss(reduction='sum')
         self.padding_idx = padding_idx
         self.confidence = 1.0 - smoothing
         self.smoothing = smoothing
@@ -118,7 +119,7 @@ class SimpleLossCompute:
         if self.opt is not None:
             self.opt.step()
             self.opt.optimizer.zero_grad()
-        return loss.data[0] * norm
+        return loss.data.item() * norm
 
 
 if __name__ == "__main__":
@@ -127,10 +128,9 @@ if __name__ == "__main__":
     model = make_model(V, V, N=2)
     model_opt = NoamOpt(model.src_embed[0].d_model, 1, 400,
                         torch.optim.Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9))
-
     for epoch in range(10):
         model.train()
-        run_epoch(data_gen(V, 30, 20), model, SimpleLossCompute(model.generator, criterion, model_opt))
+        run_epoch(data_gen(V, batch=30, nbatches=20), model, SimpleLossCompute(model.generator, criterion, model_opt))
         model.eval()
-        print(run_epoch(data_gen(V, 30, 5), model,
-                        SimpleLossCompute(model.generaotr, criterion, model_opt)))
+        print(run_epoch(data_gen(V, batch=30, nbatches=5), model,
+                        SimpleLossCompute(model.generator, criterion, model_opt)))
