@@ -36,3 +36,6 @@ def data_gen(V, batch, nbatches):
         src = Variable(data, requires_grad=False)
         tgt = Variable(data, requires_grad=False)
         yield Batch(src, tgt, 0)
+
+
+
