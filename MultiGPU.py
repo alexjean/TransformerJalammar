@@ -22,7 +22,7 @@ class MultiGPULossCompute:
         out_scatter = nn.parallel.scatter(out, target_gpus=self.devices)
         out_grad = [[] for _ in out_scatter]
         targets = nn.parallel.scatter(targets, target_gpus=self.devices)
-
+        # Divide generating into chunks
         chunk_size = self.chunk_size
         for i in range(0, out_scatter[0].size(1), chunk_size):
             # predict distributions
@@ -42,7 +42,6 @@ class MultiGPULossCompute:
                 l.backward()
                 for j, l in enumerate(loss):
                     out_grad[j].append(out_column[j][0].grad.data.clone())
-
         # Backpro all loss through transformer
         if self.opt is not None:
             out_grad = [Variable(torch.cat(og, dim=1)) for og in out_grad]

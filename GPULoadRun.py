@@ -49,7 +49,7 @@ if __name__ == "__main__":
     SRC.build_vocab(train.src, min_freq=MIN_FREQ)
     TGT.build_vocab(train.trg, min_freq=MIN_FREQ)
 
-    devices = [torch.device('cuda:0')]
+    devices = [0]
     pad_idx = TGT.vocab.stoi["<blank>"]
     model = make_model(len(SRC.vocab), len(TGT.vocab), N=6)
     model.cuda()
