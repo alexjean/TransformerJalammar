@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2019/12/17 下午 11:00
 # @Author  : AlexJean
+import time
 import torch
 import torch.nn as nn
 from torchtext import data, datasets
@@ -34,6 +35,7 @@ def tokenize_en(text):
 
 
 if __name__ == "__main__":
+    start = time.time()
     spacy_de = spacy.load('de')
     spacy_en = spacy.load('en')
     BOS_WORD = '<s>'
@@ -49,13 +51,16 @@ if __name__ == "__main__":
     SRC.build_vocab(train.src, min_freq=MIN_FREQ)
     TGT.build_vocab(train.trg, min_freq=MIN_FREQ)
 
-    devices = [0]
+    devices = [0, 1]
     pad_idx = TGT.vocab.stoi["<blank>"]
+    print("Load Spacy en de take %f seconds!" % (time.time() - start))
+
+    start = time.time()
     model = make_model(len(SRC.vocab), len(TGT.vocab), N=6)
     model.cuda()
     criterion = LabelSmoothing(size=len(TGT.vocab), padding_idx=pad_idx, smoothing=0.1)
     criterion.cuda()
-    BATCH_SIZE = 1000
+    BATCH_SIZE = 8000
     print("4")
     train_iter = MyIterator(train, batch_size=BATCH_SIZE, device=torch.device('cuda:0'),
                             repeat=False, sort_key=lambda x: (len(x.src), len(x.trg)),
@@ -67,11 +72,13 @@ if __name__ == "__main__":
     print("6")
     model_par = nn.DataParallel(model, device_ids=devices)
     print("7")
+    print("model %f seconds!" % (time.time() - start))
 
+    start = time.time()
     if True:
         model_opt = NoamOpt(model.src_embed[0].d_model, 1, 2000,
                             torch.optim.Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9))
-        for epoch in range(10):
+        for epoch in range(1):
             model_par.train()
             run_epoch((rebatch(pad_idx, b) for b in train_iter), model_par,
                       MultiGPULossCompute(model.generator, criterion, devices=devices, opt=model_opt))
@@ -82,3 +89,5 @@ if __name__ == "__main__":
             print(loss)
     else:
         model = torch.load("iwslt.pt")
+
+    print("trains take %f seconds!" % (time.time() - start))
